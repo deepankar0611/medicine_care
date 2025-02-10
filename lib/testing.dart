@@ -1,8 +1,12 @@
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:medicine_care/home_page.dart';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supabaseClient;
 
 import 'edit_profile.dart';
 
@@ -18,26 +22,74 @@ class _TestingState extends State<Testing> {
   String dob = "";
   String gender = "";
   String bloodType = "";
+  String profileImageUrl = "";
   final String? userId = FirebaseAuth.instance.currentUser?.uid;
+  bool _isUploading = false;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
-    if (userId != null) {
-      _fetchProfile();
-    }
+    _fetchProfile();
   }
 
   /// Fetch user profile data from Firestore
   void _fetchProfile() async {
-    DocumentSnapshot doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
-    if (doc.exists) {
+    if (userId == null) return;
+
+    final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    if (doc.exists && doc.data() != null) {
+      final data = doc.data() as Map<String, dynamic>;
       setState(() {
-        name = doc['name'] ?? "User";
-        dob = doc['dob'] ?? "";
-        gender = doc['gender'] ?? "";
-        bloodType = doc['bloodType'] ?? "";
+        name = data['name'] ?? "User";
+        dob = data['dob'] ?? "";
+        gender = data['gender'] ?? "";
+        bloodType = data['bloodType'] ?? "";
+        profileImageUrl = data['profileImageUrl'] ?? "";
       });
+    }
+  }
+
+  /// Pick an image and upload to Supabase Storage
+  Future<void> _uploadProfileImage() async {
+    try {
+      final pickedFile = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+      if (pickedFile == null) return;
+
+      setState(() => _isUploading = true);
+
+      final File file = File(pickedFile.path);
+      final String fileName = 'profile_pictures/$userId-${basename(file.path)}';
+
+      // Convert File to Uint8List
+      final Uint8List fileBytes = await file.readAsBytes();
+
+      final supabase = supabaseClient.Supabase.instance.client;
+
+      // Upload to Supabase Storage
+      await supabase.storage.from('profile_pictures').uploadBinary(
+        fileName,
+        fileBytes,
+        fileOptions: const supabaseClient.FileOptions(upsert: true),
+      );
+
+      // Get the public URL of the uploaded image
+      final String publicUrl = supabase.storage.from('profile_pictures').getPublicUrl(fileName);
+
+      // Update Firestore with the new Supabase image URL
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'profileImageUrl': publicUrl,
+      });
+
+      setState(() {
+        profileImageUrl = publicUrl;
+        _isUploading = false;
+      });
+
+      print("Profile image updated successfully in Supabase Storage!");
+    } catch (e) {
+      print("Error uploading image: $e");
+      setState(() => _isUploading = false);
     }
   }
 
@@ -54,9 +106,7 @@ class _TestingState extends State<Testing> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.arrow_back, color: Colors.purple),
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
+                    onPressed: () => Navigator.pop(context),
                   ),
                   const Spacer(),
                   IconButton(
@@ -75,7 +125,6 @@ class _TestingState extends State<Testing> {
                         ),
                       );
 
-                      /// **Check if data was updated and refresh the UI**
                       if (updatedData != null && mounted) {
                         setState(() {
                           name = updatedData['name'] ?? name;
@@ -93,10 +142,29 @@ class _TestingState extends State<Testing> {
                   child: Column(
                     children: [
                       const SizedBox(height: 10),
-                      const CircleAvatar(
-                        radius: 50,
-                        backgroundImage: AssetImage('assets/profile.jpg'),
+                      Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundImage: profileImageUrl.isNotEmpty
+                                ? NetworkImage(profileImageUrl)
+                                : const AssetImage('assets/1.png') as ImageProvider,
+                          ),
+                          GestureDetector(
+                            onTap: _uploadProfileImage,
+                            child: Container(
+                              padding: const EdgeInsets.all(5),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.purple.withOpacity(0.8),
+                              ),
+                              child: const Icon(Icons.camera_alt, color: Colors.white),
+                            ),
+                          ),
+                        ],
                       ),
+                      if (_isUploading) const CircularProgressIndicator(),
                       const SizedBox(height: 10),
                       Text(
                         name,

@@ -47,6 +47,8 @@ dependencies:
   firebase_storage: ^12.4.2
   image_picker: ^1.1.2
   shared_preferences: ^2.5.1
+  supabase_flutter: ^2.8.3
+
 
 
 
