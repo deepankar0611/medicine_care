@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:medicine_care/add_reminder.dart';
 import 'package:medicine_care/login_screen.dart';
+import 'package:medicine_care/testing.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -32,7 +33,28 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _deleteMedication(String docId) async {
-    await FirebaseFirestore.instance.collection('medications').doc(docId).delete();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('medications')
+          .doc(docId)
+          .delete();
+    }
+  }
+
+  Stream<List<DocumentSnapshot>> _getUserMedications() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const Stream.empty();
+
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('medications')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs);
   }
 
   @override
@@ -61,7 +83,12 @@ class _HomePageState extends State<HomePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_none, color: Colors.grey),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const Testing()),
+              );
+            },
           ),
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.red),
@@ -150,17 +177,17 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildMedicationList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('medications').orderBy('createdAt', descending: true).snapshots(),
+    return StreamBuilder<List<DocumentSnapshot>>(
+      stream: _getUserMedications(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const Center(child: Text('No medications found.'));
         }
 
-        final medications = snapshot.data!.docs;
+        final medications = snapshot.data!;
 
         return ListView.builder(
           itemCount: medications.length,

@@ -3,7 +3,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:medicine_care/home_page.dart';
 import 'package:medicine_care/login_screen.dart';
+import 'package:medicine_care/testing.dart';
 import 'firebase_options.dart';
+import 'testing.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,7 +31,7 @@ class MyApp extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasData) {
-            return const HomePage(); // User is logged in
+            return const Testing(); // User is logged in
           } else {
             return const LoginScreen(); // User is not logged in
           }

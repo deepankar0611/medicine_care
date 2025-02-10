@@ -1,109 +1,123 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:medicine_care/home_page.dart';
 
-class TravelCard extends StatefulWidget {
-  final String destination;
-  final double budget;
-  final int duration;
-  final int travelers;
+import 'edit_profile.dart';
 
-  const TravelCard({
-    Key? key,
-    required this.destination,
-    required this.budget,
-    required this.duration,
-    required this.travelers,
-  }) : super(key: key);
+class Testing extends StatefulWidget {
+  const Testing({super.key});
 
   @override
-  State<TravelCard> createState() => _TravelCardState();
+  State<Testing> createState() => _TestingState();
 }
 
-class _TravelCardState extends State<TravelCard> {
+class _TestingState extends State<Testing> {
+  String name = "User";
+  String dob = "";
+  String gender = "";
+  String bloodType = "";
+  final String? userId = FirebaseAuth.instance.currentUser?.uid;
+
   @override
-  Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
-      elevation: 5,
-      margin: EdgeInsets.all(16),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  widget.destination,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Icon(Icons.location_on, color: Colors.blueAccent),
-              ],
-            ),
-            SizedBox(height: 10),
-            Divider(),
-            SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildInfoTile(Icons.attach_money, 'Budget', '\$${widget.budget.toStringAsFixed(2)}'),
-                _buildInfoTile(Icons.calendar_today, 'Duration', '${widget.duration} Days'),
-              ],
-            ),
-            SizedBox(height: 15),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildInfoTile(Icons.group, 'Travelers', '${widget.travelers} People'),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
+  void initState() {
+    super.initState();
+    if (userId != null) {
+      _fetchProfile();
+    }
   }
 
-  Widget _buildInfoTile(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(icon, color: Colors.blueAccent),
-        SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: TextStyle(fontWeight: FontWeight.w500, color: Colors.grey)),
-            Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ],
-    );
+  /// Fetch user profile data from Firestore
+  void _fetchProfile() async {
+    DocumentSnapshot doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    if (doc.exists) {
+      setState(() {
+        name = doc['name'] ?? "User";
+        dob = doc['dob'] ?? "";
+        gender = doc['gender'] ?? "";
+        bloodType = doc['bloodType'] ?? "";
+      });
+    }
   }
-}
 
-class TravelPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Travel Plan')),
-      body: Center(
-        child: TravelCard(
-          destination: 'Paris, France',
-          budget: 2000,
-          duration: 7,
-          travelers: 2,
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.purple),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.purple),
+                    onPressed: () async {
+                      final updatedData = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EditProfilePage(
+                            userId: userId!,
+                            name: name,
+                            dob: dob,
+                            gender: gender,
+                            bloodType: bloodType,
+                          ),
+                        ),
+                      );
+
+                      /// **Check if data was updated and refresh the UI**
+                      if (updatedData != null && mounted) {
+                        setState(() {
+                          name = updatedData['name'] ?? name;
+                          dob = updatedData['dob'] ?? dob;
+                          gender = updatedData['gender'] ?? gender;
+                          bloodType = updatedData['bloodType'] ?? bloodType;
+                        });
+                      }
+                    },
+                  ),
+                ],
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 10),
+                      const CircleAvatar(
+                        radius: 50,
+                        backgroundImage: AssetImage('assets/profile.jpg'),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        name,
+                        style: GoogleFonts.poppins(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.purple,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text("Date of Birth: $dob", style: GoogleFonts.poppins(fontSize: 16)),
+                      Text("Gender: $gender", style: GoogleFonts.poppins(fontSize: 16)),
+                      Text("Blood Type: $bloodType", style: GoogleFonts.poppins(fontSize: 16)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
-}
-
-void main() {
-  runApp(MaterialApp(
-    home: TravelPage(),
-  ));
 }

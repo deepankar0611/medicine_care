@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'notification_helper.dart';
 
@@ -66,6 +67,13 @@ class _AddReminderState extends State<AddReminder> {
 
   void _submitForm() async {
     if (_medicineNameController.text.isNotEmpty) {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User not authenticated.')));
+        return;
+      }
+
+      final userId = user.uid;
       final medicineData = {
         'name': _medicineNameController.text,
         'frequency': frequency,
@@ -75,17 +83,7 @@ class _AddReminderState extends State<AddReminder> {
       };
 
       try {
-        await FirebaseFirestore.instance.collection('medications').add(medicineData);
-
-        // Schedule notifications for each selected time
-        for (int i = 0; i < reminderTimes.length; i++) {
-          NotificationService().scheduleNotification(
-            id: i,
-            title: 'Medication Reminder',
-            body: 'It\'s time to take your medicine: ${_medicineNameController.text}',
-            time: reminderTimes[i],
-          );
-        }
+        await FirebaseFirestore.instance.collection('users').doc(userId).collection('medications').add(medicineData);
 
         _medicineNameController.clear();
         schedule = [
@@ -109,6 +107,7 @@ class _AddReminderState extends State<AddReminder> {
       );
     }
   }
+
 
 
   @override
