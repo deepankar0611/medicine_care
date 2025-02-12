@@ -149,7 +149,7 @@ class _TestingState extends State<Testing> {
                             radius: 50,
                             backgroundImage: profileImageUrl.isNotEmpty
                                 ? NetworkImage(profileImageUrl)
-                                : const AssetImage('assets/1.png') as ImageProvider,
+                                : const AssetImage('assets/logo.png') as ImageProvider,
                           ),
                           GestureDetector(
                             onTap: _uploadProfileImage,

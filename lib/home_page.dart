@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:medicine_care/add_reminder.dart';
 import 'package:medicine_care/login_screen.dart';
+import 'package:medicine_care/services/reminderReq.dart';
 import 'package:medicine_care/testing.dart';
 
 class HomePage extends StatefulWidget {
@@ -21,6 +22,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     today = DateTime.now();
+    req();
     currentDayIndex = today.weekday - 1;
   }
 
@@ -223,5 +225,9 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+  }
+
+  Future<void> req() async {
+    await reminderPermission();
   }
 }

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:medicine_care/services/localNotication.dart';
 import 'notification_helper.dart';
 
 class AddReminder extends StatefulWidget {
@@ -72,7 +73,6 @@ class _AddReminderState extends State<AddReminder> {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User not authenticated.')));
         return;
       }
-
       final userId = user.uid;
       final medicineData = {
         'name': _medicineNameController.text,
@@ -81,18 +81,16 @@ class _AddReminderState extends State<AddReminder> {
         'notificationTimes': reminderTimes.map((time) => '${time.hour}:${time.minute}').toList(),
         'createdAt': Timestamp.now(),
       };
-
       try {
         await FirebaseFirestore.instance.collection('users').doc(userId).collection('medications').add(medicineData);
-
         _medicineNameController.clear();
         schedule = [
           {'label': 'After Breakfast', 'dosage': 1.0},
           {'label': 'After Lunch', 'dosage': 1.0},
           {'label': 'After Dinner', 'dosage': 1.0},
         ];
-        reminderTimes = [];
-
+        final List<String> notificationTimes = reminderTimes.map((time) => '${time.hour}:${time.minute}').toList();
+        LocalNotification.scheduleNotificationsFromStringList(notificationTimes);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Medication reminder saved successfully!')),
         );

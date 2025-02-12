@@ -16,7 +16,7 @@ class _OnboardingScreenState extends State<IntroPage> {
   int _currentPage = 0;
   final List<Map<String, String>> _pages = [
     {
-      "image": "assets/1.png",
+      "image": "assets/logo.png",
       "title": "Welcome to Our App",
       "subtitle": "Stay Healthy, Stay on Time – Your Medication, Simplified"
     },
