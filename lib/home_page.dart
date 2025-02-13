@@ -69,16 +69,16 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.person, color: Colors.black),
-            SizedBox(width: 8),
-            Text(
-              'User',
-              style: TextStyle(
-                color: Colors.blue,
-                fontWeight: FontWeight.bold,
-              ),
+            IconButton(
+              icon: const Icon(Icons.person, color: Colors.black),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const Testing()),
+                );
+              },
             ),
           ],
         ),
